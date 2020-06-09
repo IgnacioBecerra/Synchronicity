@@ -96,7 +96,7 @@ app.get('/login', function(req, res) {
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
-	  '&client_id=' + config.client_id +
+	  '&client_id=' + process.env.client_id +
 	  (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
 	  '&redirect_uri=' + encodeURIComponent(redirect_uri));
 
