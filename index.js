@@ -16,9 +16,9 @@ const port = process.env.PORT || "3000";
 
 var code = '';
 
-app.use(express.static(__dirname + '/public'))
-   .use(cors())
-   .use(cookieParser());
+app.get('/', function(req, res) {
+    res.sendFile(path.join(__dirname + '/public/index.html'));
+});
 
 app.get("/callback", (req, res) => {
   const queryObject = url.parse(req.url,true).query;
