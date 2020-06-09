@@ -9,7 +9,7 @@ var querystring = require('querystring');
 
 
 const app = express();
-const port = process.env.PORT || "8888";
+const port = process.env.PORT || "3000";
 
 
 var code = '';
@@ -28,7 +28,7 @@ app.get("/callback", (req, res) => {
 	  client_id: config.client_id,
 	  client_secret: config.client_secret,
 	  code: authCode,
-	  redirect_uri: 'http://localhost:8888/callback',
+	  redirect_uri: 'http://localhost:3000/callback',
 	  grant_type: 'authorization_code'
 	},
 	json: true
@@ -89,7 +89,7 @@ app.listen(port, () => {
 
 app.get('/login', function(req, res) {
 	var scopes = 'user-read-currently-playing user-modify-playback-state';
-	var redirect_uri = 'http://localhost:8888/callback'
+	var redirect_uri = 'http://localhost:3000/callback'
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
