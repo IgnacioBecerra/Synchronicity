@@ -6,7 +6,9 @@ var cookieParser = require('cookie-parser');
 const url = require('url');
 var request = require('request'); 
 var querystring = require('querystring');
+require('dotenv').config();
 
+console.log(process.env.client_id)
 
 const app = express();
 const port = process.env.PORT || "3000";
@@ -25,8 +27,8 @@ app.get("/callback", (req, res) => {
   var authOptions = {
 	url: 'https://accounts.spotify.com/api/token',
 	form: {
-	  client_id: config.client_id,
-	  client_secret: config.client_secret,
+	  client_id: process.env.client_id,
+	  client_secret: process.env.client_secret,
 	  code: authCode,
 	  redirect_uri: 'http://localhost:3000/callback',
 	  grant_type: 'authorization_code'
@@ -35,6 +37,8 @@ app.get("/callback", (req, res) => {
   };
   
   request.post(authOptions, function(error, response, body) {
+
+    console.log(body)
       if (!error && response.statusCode === 200) {
 
         var access_token = body.access_token,
