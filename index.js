@@ -10,7 +10,7 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || "3000";
 
-var mysql = require(‘mysql’);
+var mysql = require('mysql');
 var connection = mysql.createConnection({
   host:'us-cdbr-east-05.cleardb.net',
   user:'b293e8f99f4f71',
