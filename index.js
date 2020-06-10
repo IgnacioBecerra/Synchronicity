@@ -7,18 +7,28 @@ var request = require('request');
 var querystring = require('querystring');
 require('dotenv').config();
 
-console.log(process.env.client_id)
-
 const app = express();
 const port = process.env.PORT || "3000";
+
+var mysql = require(‘mysql’);
+var connection = mysql.createConnection({
+  host:'us-cdbr-east-05.cleardb.net',
+  user:'b293e8f99f4f71',
+  password: '63573abe'
+  database: 'heroku_e5f3abd1443db44'
+});
+
+connection.connect();
 
 
 var code = '';
 
+// redirect to HTML homepage
 app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname + '/public/index.html'));
 });
 
+// Obtain authorization code
 app.get("/callback", (req, res) => {
   const queryObject = url.parse(req.url,true).query;
   authCode = queryObject.code;
@@ -37,11 +47,16 @@ app.get("/callback", (req, res) => {
   
   request.post(authOptions, function(error, response, body) {
 
-    console.log(body)
       if (!error && response.statusCode === 200) {
 
         var access_token = body.access_token,
             refresh_token = body.refresh_token;
+
+        var sql = "INSERT INTO tokens (access_token, refresh_token) VALUES ('"+access_token+"','"+refresh_token+"')";
+        con.query(sql, function (err, result) {
+          if (err) throw err;
+          console.log("1 record inserted");
+        });
 
         var time = 0;
         var options = {
@@ -52,7 +67,6 @@ app.get("/callback", (req, res) => {
 
         // use the access token to access the Spotify Web API
         request.put(options, function(error, response, body) {
-          console.log(body);
         });
       }
     });
