@@ -34,15 +34,15 @@ app.get("/callback", (req, res) => {
   authCode = queryObject.code;
 
   var authOptions = {
-	url: 'https://accounts.spotify.com/api/token',
-	form: {
-	  client_id: process.env.client_id,
-	  client_secret: process.env.client_secret,
-	  code: authCode,
-	  redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
-	  grant_type: 'authorization_code'
-	},
-	json: true
+  	url: 'https://accounts.spotify.com/api/token',
+  	form: {
+  	  client_id: process.env.client_id,
+  	  client_secret: process.env.client_secret,
+  	  code: authCode,
+  	  redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
+  	  grant_type: 'authorization_code'
+  	},
+  	json: true
   };
   
   request.post(authOptions, function(error, response, body) {
@@ -53,7 +53,7 @@ app.get("/callback", (req, res) => {
             refresh_token = body.refresh_token;
 
         var sql = "INSERT INTO tokens (access_token, refresh_token) VALUES ('"+access_token+"','"+refresh_token+"')";
-        con.query(sql, function (err, result) {
+        connection.query(sql, function (err, result) {
           if (err) throw err;
           console.log("1 record inserted");
         });
