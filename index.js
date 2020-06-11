@@ -185,7 +185,6 @@ function getCurrentSong(access, refresh, callback) {
 
     if(response.statusCode == 401) {
       let newAccess = token_refresh(refresh);
-      console.log('THIS IS ' + newAccess);
       getCurrentSong(newAccess, refresh);
     }
     return callback(body);
