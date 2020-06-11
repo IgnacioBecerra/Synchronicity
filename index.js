@@ -165,7 +165,7 @@ app.post('/play_user_song', (req, res) => {
         let access = result[0].access_token,
             refresh = result[0].refresh_token;
         getCurrentSong(access, refresh, (response) => {
-          //playCurrentSong(access, response.item.uri, response.progress_ms);
+          playCurrentSong(access, response.item.uri, response.progress_ms);
           res.json(response);
         });
     }
@@ -188,6 +188,7 @@ function getCurrentSong(access, refresh, callback) {
       console.log('THIS IS ' + newAccess);
       getCurrentSong(newAccess, refresh);
     }
+    return callback(body);
   });
 }
 
@@ -195,15 +196,14 @@ function playCurrentSong(access, uri, position) {
   var options = {
     url: 'https://api.spotify.com/v1/me/player/play',
     headers: { 'Authorization': 'Bearer ' + access },
-    uri: uri,
-    position_ms: position,
-    json: true,
+    json: {
+      "uris": [uri],
+      "position_ms": position
+    }
   };
+
   // use the access token to access the Spotify Web API
-  request.put(options, function(err, response, body) {
-    console.log(err);
-    console.log('WORKS??')
-  });
+  request.put(options);
 }
 
 function token_refresh(refresh) {
