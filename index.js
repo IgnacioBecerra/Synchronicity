@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 var cors = require('cors');
 var cookies = require('cookie-parser');
+var bodyParser = require('body-parser');
 const url = require('url');
 var request = require('request'); 
 var querystring = require('querystring');
@@ -10,6 +11,8 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || "3000";
 app.use(cookies());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 var mysql = require('mysql');
 var db_config = {
@@ -20,22 +23,21 @@ var db_config = {
 };
 
 function handleDisconnect() {
-  connection = mysql.createConnection(db_config); // Recreate the connection, since
-                                                  // the old one cannot be reused.
+  connection = mysql.createConnection(db_config); 
 
-  connection.connect(function(err) {              // The server is either down
-    if(err) {                                     // or restarting (takes a while sometimes).
+  connection.connect(function(err) {              
+    if(err) {                                     
       console.log('error when connecting to db:', err);
-      setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-    }                                     // to avoid a hot loop, and to allow our node script to
-  });                                     // process asynchronous requests in the meantime.
-                                          // If you're also serving http, display a 503 error.
+      setTimeout(handleDisconnect, 2000); 
+    }                                     
+  });                                     
+
   connection.on('error', function(err) {
     console.log('db error', err);
-    if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-      handleDisconnect();                         // lost due to either server restart, or a
-    } else {                                      // connnection idle timeout (the wait_timeout
-      throw err;                                  // server variable configures this)
+    if(err.code === 'PROTOCOL_CONNECTION_LOST') { 
+      handleDisconnect();                         
+    } else {                                      
+      throw err;                                  
     }
   });
 }
@@ -101,7 +103,7 @@ function generate_tokens(res, callback) {
       client_id: process.env.client_id,
       client_secret: process.env.client_secret,
       code: authCode,
-      redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
+      redirect_uri: 'http://localhost:3000/callback',
       grant_type: 'authorization_code'
     },
     json: true
@@ -141,7 +143,7 @@ app.get('/refresh_token', function(req, res) {
 });
 
 
-function reset_song() {
+function resetSong() {
   var time = 0;
   var options = {
     url: 'https://api.spotify.com/v1/me/player/seek?position_ms='+time,
@@ -157,7 +159,7 @@ function reset_song() {
 
 app.get('/login', function(req, res) {
 	var scopes = 'user-read-currently-playing user-modify-playback-state user-read-email';
-	var redirect_uri = 'https://synchronicity115.herokuapp.com/callback'
+	var redirect_uri = 'http://localhost:3000/callback'
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
@@ -171,3 +173,20 @@ app.get('/login', function(req, res) {
 app.listen(port, () => {
   console.log(`Listening to requests on http://localhost:${port}`);
 });
+
+
+app.post('/memes', (req, res) => {
+  let query = "SELECT id FROM tokens WHERE id='" + req.body.id +"';";
+  connection.query(query, function(err, result, fields) {
+    if(result.length > 0) {
+
+      res.send('FOUND!')
+    }
+
+    res.send("NOT FOUND")
+  });
+})
+
+function getCurrentSong() {
+  
+}
