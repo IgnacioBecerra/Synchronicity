@@ -120,34 +120,16 @@ function generate_tokens(res, callback) {
 
 app.get('/refresh_token', function(req, res) {
 
-  // requesting access token from refresh token
-  var refresh_token = req.query.refresh_token;
-  var authOptions = {
-    url: 'https://accounts.spotify.com/api/token',
-    headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
-    form: {
-      grant_type: 'refresh_token',
-      refresh_token: refresh_token
-    },
-    json: true
-  };
-
-  request.post(authOptions, function(error, response, body) {
-    if (!error && response.statusCode === 200) {
-      var access_token = body.access_token;
-      res.send({
-        'access_token': access_token
-      });
-    }
-  });
+  
 });
 
 
-function resetSong() {
+
+function resetSong(access) {
   var time = 0;
   var options = {
     url: 'https://api.spotify.com/v1/me/player/seek?position_ms='+time,
-    headers: { 'Authorization': 'Bearer ' + access_token },
+    headers: { 'Authorization': 'Bearer ' + access },
     json: true,
   };
 
@@ -175,18 +157,75 @@ app.listen(port, () => {
 });
 
 
-app.post('/memes', (req, res) => {
-  let query = "SELECT id FROM tokens WHERE id='" + req.body.id +"';";
+app.post('/play_user_song', (req, res) => {
+  let query = "SELECT * FROM tokens WHERE id='" + req.body.id +"';";
   connection.query(query, function(err, result, fields) {
+    
     if(result.length > 0) {
-
-      res.send('FOUND!')
+        let access = result[0].access_token,
+            refresh = result[0].refresh_token;
+        getCurrentSong(access, refresh, (response) => {
+          //playCurrentSong(access, response.item.uri, response.progress_ms);
+          res.json(response);
+        });
     }
-
-    res.send("NOT FOUND")
   });
 })
 
-function getCurrentSong() {
-  
+function getCurrentSong(access, refresh, callback) {
+  var time = 0;
+  var options = {
+    url: 'https://api.spotify.com/v1/me/player/currently-playing',
+    headers: { 'Authorization': 'Bearer ' + access },
+    json: true,
+  };
+
+  // use the access token to access the Spotify Web API
+  request.get(options, function(err, response, body) {
+
+    if(response.statusCode == 401) {
+      let newAccess = token_refresh(refresh);
+      console.log('THIS IS ' + newAccess);
+      getCurrentSong(newAccess, refresh);
+    }
+  });
 }
+
+function playCurrentSong(access, uri, position) {
+  var options = {
+    url: 'https://api.spotify.com/v1/me/player/play',
+    headers: { 'Authorization': 'Bearer ' + access },
+    uri: uri,
+    position_ms: position,
+    json: true,
+  };
+  // use the access token to access the Spotify Web API
+  request.put(options, function(err, response, body) {
+    console.log(err);
+    console.log('WORKS??')
+  });
+}
+
+function token_refresh(refresh) {
+  // requesting access token from refresh token
+  var authOptions = {
+    url: 'https://accounts.spotify.com/api/token',
+    headers: { 'Authorization': 'Basic ' + (new Buffer(process.env.client_id + ':' + process.env.client_secret).toString('base64')) },
+    form: {
+      grant_type: 'refresh_token',
+      refresh_token: refresh
+    },
+    json: true
+  };
+
+  request.post(authOptions, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+      var access_token = body.access_token;
+      let query = "UPDATE tokens SET access_token='" +access_token + "' WHERE refresh_token='" + refresh +"';";
+      connection.query(query, function(err, result, fields) {
+        return access_token;
+      });
+    }
+  });
+}
+
