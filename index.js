@@ -89,7 +89,7 @@ app.get("/callback", (req, res) => {
       connection.query(sql, function (err, result) {
         if (err) throw err;
         console.log('1 entry added')
-        res.send('memes');
+        res.redirect('/hub');
       });
     });
   })
@@ -103,7 +103,7 @@ function generate_tokens(res, callback) {
       client_id: process.env.client_id,
       client_secret: process.env.client_secret,
       code: authCode,
-      redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
+      redirect_uri: 'http://localhost:3000/callback',
       grant_type: 'authorization_code'
     },
     json: true
@@ -141,7 +141,7 @@ function resetSong(access) {
 
 app.get('/login', function(req, res) {
 	var scopes = 'user-read-currently-playing user-modify-playback-state user-read-email';
-	var redirect_uri = 'https://synchronicity115.herokuapp.com/callback'
+	var redirect_uri = 'http://localhost:3000/callback'
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
@@ -162,18 +162,26 @@ app.post('/play_user_song', (req, res) => {
   connection.query(query, function(err, result, fields) {
     
     if(result.length > 0) {
-        let access = result[0].access_token,
-            refresh = result[0].refresh_token;
-        getCurrentSong(access, refresh, (response) => {
-          playCurrentSong(access, response.item.uri, response.progress_ms);
+      let access = result[0].access_token,
+          refresh = result[0].refresh_token;
+      
+
+      getUserSong(access, refresh, (response) => {
+        console.log(response);
+        // TODO SHOULD BE MY_ACCESS
+        let query = "SELECT access_token FROM tokens WHERE refresh_token='" + req.cookies['refresh_token'] +"';";
+        
+        connection.query(query, function(err, result, fields) {
+          console.log('now '+ JSON.stringify(result[0].access_token))
+          playCurrentSong(result[0].access_token, response.item.uri, response.progress_ms);
           res.json(response);
         });
+      });
     }
   });
 })
 
-function getCurrentSong(access, refresh, callback) {
-  var time = 0;
+function getUserSong(access, refresh, callback) {
   var options = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
     headers: { 'Authorization': 'Bearer ' + access },
@@ -184,10 +192,14 @@ function getCurrentSong(access, refresh, callback) {
   request.get(options, function(err, response, body) {
 
     if(response.statusCode == 401) {
-      let newAccess = token_refresh(refresh);
-      getCurrentSong(newAccess, refresh);
+      console.log("Ther is a 401 error")
+      console.log("Old access " + access);
+      token_refresh(refresh, (newAccess) => {
+        console.log("New access " + newAccess);
+        getUserSong(newAccess, refresh, () => {});
+      });
     }
-    return callback(body);
+    callback(body);
   });
 }
 
@@ -205,11 +217,14 @@ function playCurrentSong(access, uri, position) {
   request.put(options);
 }
 
-function token_refresh(refresh) {
+function token_refresh(refresh, callback) {
+
+  console.log('TOKEN REFRESH')
+  
   // requesting access token from refresh token
   var authOptions = {
     url: 'https://accounts.spotify.com/api/token',
-    headers: { 'Authorization': 'Basic ' + (new Buffer(process.env.client_id + ':' + process.env.client_secret).toString('base64')) },
+    headers: { 'Authorization': 'Basic ' + (new Buffer.from(process.env.client_id + ':' + process.env.client_secret).toString('base64')) },
     form: {
       grant_type: 'refresh_token',
       refresh_token: refresh
@@ -218,13 +233,45 @@ function token_refresh(refresh) {
   };
 
   request.post(authOptions, function(error, response, body) {
+    console.log("WHY DOES IT NOT COME HEREEEEE");
     if (!error && response.statusCode === 200) {
       var access_token = body.access_token;
       let query = "UPDATE tokens SET access_token='" +access_token + "' WHERE refresh_token='" + refresh +"';";
       connection.query(query, function(err, result, fields) {
-        return access_token;
+        console.log('TOKEN UPDATED');
+        callback(access_token);
       });
     }
   });
+
+  console.log('SDSU');
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+getData(arg1, (response) => {
+
+});
+
+function getData(arg1, callback) {
+
+}
+
+
+
+
+app.get('test');
+
+*/
