@@ -19,7 +19,8 @@ var db_config = {
   host:'us-cdbr-east-05.cleardb.net',
   user:'b293e8f99f4f71',
   password: '63573abe',
-  database: 'heroku_e5f3abd1443db44'
+  database: 'heroku_e5f3abd1443db44',
+  timezone: 'UTC'
 };
 
 function handleDisconnect() {
@@ -103,7 +104,7 @@ function generate_tokens(res, callback) {
       client_id: process.env.client_id,
       client_secret: process.env.client_secret,
       code: authCode,
-      redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
+      redirect_uri: 'http://localhost:3000/callback',
       grant_type: 'authorization_code'
     },
     json: true
@@ -141,7 +142,7 @@ function resetSong(access) {
 
 app.get('/login', function(req, res) {
 	var scopes = 'user-read-currently-playing user-modify-playback-state user-read-email';
-	var redirect_uri = 'https://synchronicity115.herokuapp.com/callback'
+	var redirect_uri = 'http://localhost:3000/callback'
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
@@ -158,6 +159,13 @@ app.listen(port, () => {
 
 
 app.post('/play_user_song', (req, res) => {
+
+  // Check if access token is still okay
+  let query1 = "SELECT refresh_token FROM tokens WHERE id='" + req.body.id +"';";
+  connection.query(query1, function(err, result, fields) {
+    expirationCheck(result[0].refresh_token);
+  })
+
   let query = "SELECT * FROM tokens WHERE id='" + req.body.id +"';";
   connection.query(query, function(err, result, fields) {
     
@@ -165,7 +173,9 @@ app.post('/play_user_song', (req, res) => {
       let access = result[0].access_token,
           refresh = result[0].refresh_token;
       
-
+      
+      res.send('memes')
+/*
       getUserSong(access, refresh, (response) => {
         console.log(response);
         // TODO SHOULD BE MY_ACCESS
@@ -176,12 +186,13 @@ app.post('/play_user_song', (req, res) => {
           playCurrentSong(result[0].access_token, response.item.uri, response.progress_ms);
           res.json(response);
         });
-      });
+      });*/
     }
   });
 })
 
 function getUserSong(access, refresh, callback) {
+
   var options = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
     headers: { 'Authorization': 'Bearer ' + access },
@@ -190,15 +201,6 @@ function getUserSong(access, refresh, callback) {
 
   // use the access token to access the Spotify Web API
   request.get(options, function(err, response, body) {
-
-    if(response.statusCode == 401) {
-      console.log("Ther is a 401 error")
-      console.log("Old access " + access);
-      token_refresh(refresh, (newAccess) => {
-        console.log("New access " + newAccess);
-        getUserSong(newAccess, refresh, () => {});
-      });
-    }
     callback(body);
   });
 }
@@ -217,7 +219,26 @@ function playCurrentSong(access, uri, position) {
   request.put(options);
 }
 
-function token_refresh(refresh, callback) {
+function expirationCheck(refresh) {
+  let current_time = new Date().getTime()/1000;
+
+  let query = "SELECT timestamp FROM tokens WHERE refresh_token='" + refresh +"';";
+        
+  connection.query(query, function(err, result, fields) {
+    
+    let token_date = new Date(result[0].timestamp);
+    token_date = token_date.getTime() / 1000;
+    
+    let diff = current_time - token_date;
+    
+    if(diff > 3400) {
+      tokenRefresh(refresh);
+    }
+
+  });
+}
+
+function tokenRefresh(refresh) {
 
   console.log('TOKEN REFRESH')
   
@@ -233,18 +254,15 @@ function token_refresh(refresh, callback) {
   };
 
   request.post(authOptions, function(error, response, body) {
-    console.log("WHY DOES IT NOT COME HEREEEEE");
+
     if (!error && response.statusCode === 200) {
       var access_token = body.access_token;
       let query = "UPDATE tokens SET access_token='" +access_token + "' WHERE refresh_token='" + refresh +"';";
       connection.query(query, function(err, result, fields) {
         console.log('TOKEN UPDATED');
-        callback(access_token);
       });
     }
   });
-
-  console.log('SDSU');
 }
 
 
