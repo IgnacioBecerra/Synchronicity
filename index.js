@@ -173,9 +173,7 @@ app.post('/play_user_song', (req, res) => {
       let access = result[0].access_token,
           refresh = result[0].refresh_token;
       
-      
-      res.send('memes')
-/*
+
       getUserSong(access, refresh, (response) => {
         console.log(response);
         // TODO SHOULD BE MY_ACCESS
@@ -186,7 +184,7 @@ app.post('/play_user_song', (req, res) => {
           playCurrentSong(result[0].access_token, response.item.uri, response.progress_ms);
           res.json(response);
         });
-      });*/
+      });
     }
   });
 })
