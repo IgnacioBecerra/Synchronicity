@@ -104,7 +104,7 @@ function generate_tokens(res, callback) {
       client_id: process.env.client_id,
       client_secret: process.env.client_secret,
       code: authCode,
-      redirect_uri: 'http://localhost:3000/callback',
+      redirect_uri: 'https://synchronicity115.herokuapp.com/callback',
       grant_type: 'authorization_code'
     },
     json: true
@@ -142,7 +142,7 @@ function resetSong(access) {
 
 app.get('/login', function(req, res) {
 	var scopes = 'user-read-currently-playing user-modify-playback-state user-read-email';
-	var redirect_uri = 'http://localhost:3000/callback'
+	var redirect_uri = 'https://synchronicity115.herokuapp.com/callback'
 
 	res.redirect('https://accounts.spotify.com/authorize' +
 	  '?response_type=code' +
